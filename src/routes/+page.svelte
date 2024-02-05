@@ -9,6 +9,8 @@
 		color: 'transparent'
 	};
 
+	let displayTutorial = false;
+
 	let increment = 0;
 
 	const otherCircles = [];
@@ -75,6 +77,8 @@
 		} else {
 			coords = [];
 		}
+
+		displayTutorial = coords && coords.length <= 1;
 
 		//Clear the other circles
 		otherCircles.forEach((c) => {
@@ -214,6 +218,19 @@
 	<!-- <svg {style} id="line">
 		<line x1="55" y1="100" x2="205" y2="200" stroke="#000" stroke-width="10" />
 	</svg> -->
+
+	{#if displayTutorial}
+		<div class="tutorial">
+			<h1>How to use</h1>
+			<p>
+				Open this page in multiple windows and see the <a
+					href={window.location.href}
+					target="_blank"
+					rel="noopener noreferrer">magic</a
+				>
+			</p>
+		</div>
+	{/if}
 </section>
 
 <style>
@@ -237,6 +254,22 @@
 		position: absolute;
 		top: 0;
 		left: 0;
+	}
+
+	.tutorial {
+		z-index: 99;
+		background-color: white;
+		padding: 20px;
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+	}
+
+	h1,
+	p {
+		margin: 0;
 	}
 
 	#line {

@@ -20,6 +20,7 @@
 	onMount(() => {
 		console.log('window', window);
 		console.log('ID', Id);
+
 		animate();
 
 		center = {
@@ -28,40 +29,27 @@
 			color: `#${Math.floor(Math.random() * 16777215).toString(16)}`
 		};
 
-		/**
-		 * @type {Array<{id: string, x: number, y: number, color}>}
-		 */
-		let coords = localStorage.getItem('Coords');
-
-		if (coords) {
-			coords = JSON.parse(coords);
-		} else {
-			coords = [];
+		//clear local storage for timestamp upper 3s
+		for (let i = 0; i < localStorage.length; i++) {
+			let key = localStorage.key(i);
+			if (key.includes('Coord-')) {
+				const element = JSON.parse(localStorage.getItem(key));
+				if (Date.now() - element.timeStamp > 2000) {
+					localStorage.removeItem(key);
+				}
+			} else {
+				localStorage.removeItem(key);
+			}
 		}
 
-		coords.push({
-			id: Id,
-			x: window.innerWidth / 2 + window.screenX,
-			y: window.innerHeight / 2 + window.screenY,
-			color: center.color
-		});
-
-		localStorage.setItem('Coords', JSON.stringify(coords));
-
 		window.onbeforeunload = () => {
-			console.log('unmount');
-			//remove from local storage
-			coords = coords.filter((c) => c.id !== Id);
-			// localStorage.setItem('Coords', JSON.stringify(coords));
-			localStorage.removeItem('Coords');
+			localStorage.removeItem(`Coord-${Id}`);
 		};
 	});
 
 	//request frame
 	function animate() {
 		increment++;
-		// if (increment % 120 == 0) {
-		// 	console.log('animate');
 
 		style = `top: ${window.screenY * -1}px; left: ${window.screenX * -1}px;`;
 		center = {
@@ -71,14 +59,23 @@
 		};
 
 		//update local storage
-		let coords = localStorage.getItem('Coords');
-		if (coords) {
-			coords = JSON.parse(coords);
-		} else {
-			coords = [];
+		let coords = [];
+
+		for (let i = 0; i < localStorage.length; i++) {
+			let key = localStorage.key(i);
+			console.log('localStorage.key(i)', localStorage.key(i));
+			if (key.includes('Coord-') && key !== `Coord-${Id}`) {
+				const element = JSON.parse(localStorage.getItem(key));
+				console.log('element', element, element.timeStamp);
+				if (Date.now() - element.timeStamp < 1000) {
+					coords.push(element);
+				}
+			}
 		}
 
-		displayTutorial = coords && coords.length <= 1;
+		console.log('coords', coords);
+
+		displayTutorial = coords && coords.length < 1;
 
 		//Clear the other circles
 		otherCircles.forEach((c) => {
@@ -102,100 +99,17 @@
 			}
 		});
 
-		coords = coords.map((c) => {
-			if (c.id === Id) {
-				return {
-					id: Id,
-					x: window.innerWidth / 2 + window.screenX,
-					y: window.innerHeight / 2 + window.screenY,
-					color: center.color
-				};
-			}
-			return c;
-		});
+		localStorage.setItem(
+			'Coord-' + Id,
+			JSON.stringify({
+				id: Id,
+				x: window.innerWidth / 2 + window.screenX,
+				y: window.innerHeight / 2 + window.screenY,
+				color: center.color,
+				timeStamp: Date.now()
+			})
+		);
 
-		if (false && otherCircles.length > 0) {
-			let svg = document.getElementById('line');
-
-			//delete svg
-			svg?.remove();
-
-			svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			svg.setAttribute('id', 'line');
-			svg.setAttribute('style', style + ' position: absolute; width: 100vw; height: 100vh;');
-
-			// let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			// line.setAttribute('stroke', '#000');
-			// line.setAttribute('stroke-width', '10');
-
-			// line.setAttribute('x1', 200);
-			// line.setAttribute('y1', 400);
-			// line.setAttribute('x2', 340);
-			// line.setAttribute('y2', 340);
-
-			// svg.appendChild(line);
-
-			// line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			// line.setAttribute('stroke', '#000');
-			// line.setAttribute('stroke-width', '10');
-
-			// line.setAttribute('x1', 340);
-			// line.setAttribute('y1', 340);
-			// line.setAttribute('x2', 500);
-			// line.setAttribute('y2', 500);
-
-			// svg.appendChild(line);
-
-			// line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			// line.setAttribute('stroke', '#000');
-			// line.setAttribute('stroke-width', '10');
-
-			// line.setAttribute('x1', 500);
-			// line.setAttribute('y1', 500);
-			// line.setAttribute('x2', 200);
-			// line.setAttribute('y2', 400);
-
-			// svg.appendChild(line);
-
-			// svg.setAttribute('id', 'line');
-			// svg.setAttribute('style', style + ' position: absolute; width: 100vw; height: 100vh;');
-			// svg.classList.add('line');
-
-			console.clear();
-
-			// //relis chaque otherCircles avec la suivante
-			for (let i = 0; i < otherCircles.length - 1; i++) {
-				let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-				line.setAttribute('x1', otherCircles[i].style.left.replace('px', ''));
-				line.setAttribute('y1', otherCircles[i].style.top.replace('px', ''));
-				line.setAttribute('stroke', '#000');
-				line.setAttribute('stroke-width', '10');
-
-				if (i < otherCircles.length - 1) {
-					line.setAttribute('x2', otherCircles[i + 1].style.left.replace('px', ''));
-					line.setAttribute('y2', otherCircles[i + 1].style.top.replace('px', ''));
-				} else {
-					line.setAttribute('x2', otherCircles[0].style.left.replace('px', ''));
-					line.setAttribute('y2', otherCircles[0].style.top.replace('px', ''));
-				}
-
-				console.log(
-					'line',
-					line,
-					line.getAttribute('x1'),
-					line.getAttribute('y1'),
-					line.getAttribute('x2'),
-					line.getAttribute('y2')
-				);
-
-				svg.appendChild(line);
-			}
-
-			document.body.appendChild(svg);
-		}
-
-		localStorage.setItem('Coords', JSON.stringify(coords));
-		// }
 		requestAnimationFrame(animate);
 	}
 
@@ -215,9 +129,7 @@
 		style="position: absolute; top: {center.y}px; left: {center.x}px; background-color: {center.color}; width: 10px; height: 10px; border-radius: 50%;"
 	/>
 
-	<!-- <svg {style} id="line">
-		<line x1="55" y1="100" x2="205" y2="200" stroke="#000" stroke-width="10" />
-	</svg> -->
+	<!-- <svg {style} id="line"> </svg> -->
 
 	{#if displayTutorial}
 		<div class="tutorial">

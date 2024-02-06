@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import background from '$lib/images/background.jpg';
 	let style = '';
+	let styleSvg = '';
+
+	let Id = generateId();
 
 	let center = {
 		x: 0,
@@ -11,16 +14,11 @@
 
 	let displayTutorial = false;
 
-	let increment = 0;
-
-	const otherCircles = [];
-
-	let Id = generateId();
+	let allCirclesCoords = [];
+	let otherCirclesInstance = [];
 
 	onMount(() => {
-		console.log('window', window);
 		console.log('ID', Id);
-
 		animate();
 
 		center = {
@@ -49,9 +47,9 @@
 
 	//request frame
 	function animate() {
-		increment++;
-
 		style = `top: ${window.screenY * -1}px; left: ${window.screenX * -1}px;`;
+		styleSvg = `top: ${window.screenY * -1}px; left: ${window.screenX * -1}px; width: ${window.innerWidth}px; height: ${window.innerHeight}px;`;
+
 		center = {
 			x: window.innerWidth / 2,
 			y: window.innerHeight / 2,
@@ -63,24 +61,21 @@
 
 		for (let i = 0; i < localStorage.length; i++) {
 			let key = localStorage.key(i);
-			console.log('localStorage.key(i)', localStorage.key(i));
-			if (key.includes('Coord-') && key !== `Coord-${Id}`) {
+			if (key.includes('Coord-')) {
 				const element = JSON.parse(localStorage.getItem(key));
-				console.log('element', element, element.timeStamp);
 				if (Date.now() - element.timeStamp < 1000) {
 					coords.push(element);
 				}
 			}
 		}
 
-		console.log('coords', coords);
+		displayTutorial = coords && coords.length <= 1;
 
-		displayTutorial = coords && coords.length < 1;
-
-		//Clear the other circles
-		otherCircles.forEach((c) => {
+		otherCirclesInstance.forEach((c) => {
 			c.remove();
 		});
+
+		allCirclesCoords = [];
 
 		//render the other circles
 		coords.forEach((c) => {
@@ -90,13 +85,20 @@
 				circle.style.top = `${c.y - window.screenY}px`;
 				circle.style.left = `${c.x - window.screenX}px`;
 				circle.style.backgroundColor = c.color;
-				circle.style.width = '10px';
-				circle.style.height = '10px';
+				circle.style.width = '20px';
+				circle.style.height = '20px';
 				circle.style.borderRadius = '50%';
 				document.body.appendChild(circle);
 
-				otherCircles.push(circle);
+				otherCirclesInstance.push(circle);
 			}
+
+			allCirclesCoords.push({
+				id: c.id,
+				x: c.x - window.screenX + 10,
+				y: c.y - window.screenY + 10,
+				color: c.color
+			});
 		});
 
 		localStorage.setItem(
@@ -126,10 +128,32 @@
 <section>
 	<img src={background} alt="background" {style} />
 	<div
-		style="position: absolute; top: {center.y}px; left: {center.x}px; background-color: {center.color}; width: 10px; height: 10px; border-radius: 50%;"
+		style="position: absolute; top: {center.y}px; left: {center.x}px; background-color: {center.color}; width: 20px; height: 20px; border-radius: 50%;"
 	/>
 
-	<!-- <svg {style} id="line"> </svg> -->
+	<svg id="svg-container" {styleSvg}>
+		{#each allCirclesCoords as c, i (c.id)}
+			{#if i < allCirclesCoords.length - 1}
+				<line
+					x1={c.x}
+					y1={c.y}
+					x2={allCirclesCoords[i + 1].x}
+					y2={allCirclesCoords[i + 1].y}
+					stroke="#0075A2"
+					stroke-width="2"
+				/>
+			{:else}
+				<line
+					x1={c.x}
+					y1={c.y}
+					x2={allCirclesCoords[0].x}
+					y2={allCirclesCoords[0].y}
+					stroke="#0075A2"
+					stroke-width="2"
+				/>
+			{/if}
+		{/each}
+	</svg>
 
 	{#if displayTutorial}
 		<div class="tutorial">
@@ -152,7 +176,6 @@
 		left: 0;
 		width: 100vw;
 		height: 100vh;
-		background-color: red;
 	}
 
 	section {
@@ -166,6 +189,15 @@
 		position: absolute;
 		top: 0;
 		left: 0;
+		z-index: -1;
+	}
+
+	#svg-container {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
 	}
 
 	.tutorial {
@@ -184,12 +216,10 @@
 		margin: 0;
 	}
 
-	#line {
+	button {
 		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100vw;
-		height: 100vh;
-		border: 30px solid red;
+		bottom: 20px;
+		right: 20px;
+		z-index: 9999;
 	}
 </style>
